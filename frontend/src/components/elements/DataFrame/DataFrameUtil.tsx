@@ -223,6 +223,11 @@ export function getCellContentsGetter({
     // All table elements have class 'dataframe'.
     const Component = typeToStyledComponent[type]
 
+    // Align to left everything that is not a number
+    if (typeof contents !== "number") {
+      styles["text-align"] = "left"
+    }
+
     // Format floating point numbers nicely.
     const fsContents = toFormattedString(contents)
 
