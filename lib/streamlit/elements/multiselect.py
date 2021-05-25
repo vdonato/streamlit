@@ -12,19 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast
+from typing import Any, cast, List, Optional
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.MultiSelect_pb2 import MultiSelect as MultiSelectProto
-from streamlit.state.widgets import register_widget
+from streamlit.state.widgets import (
+    register_widget,
+    WidgetArgs,
+    WidgetCallback,
+    WidgetKwargs,
+)
 from streamlit.type_util import is_type, ensure_iterable
 from .form import current_form_id
 
 
 class MultiSelectMixin:
     def multiselect(
-        self, label, options, default=None, format_func=str, key=None, help=None
+        self,
+        label,
+        options,
+        default=None,
+        format_func=str,
+        key=None,
+        help=None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a multiselect widget.
         The multiselect widget starts as empty.
@@ -111,12 +125,27 @@ class MultiSelectMixin:
         if help is not None:
             multiselect_proto.help = help
 
-        ui_value, set_frontend_value = register_widget(
-            "multiselect", multiselect_proto, user_key=key
+        def deserialize_multiselect(ui_value: Any) -> List[str]:
+            current_value = ui_value.data if ui_value is not None else default_value
+            return [options[i] for i in current_value]
+
+        current_value, set_frontend_value = register_widget(
+            "multiselect",
+            multiselect_proto,
+            user_key=key,
+            on_change_handler=on_change,
+            args=args,
+            kwargs=kwargs,
+            deserializer=deserialize_multiselect,
         )
-        current_value = ui_value.data if ui_value is not None else default_value
-        return_value = [options[i] for i in current_value]
-        return self.dg._enqueue("multiselect", multiselect_proto, return_value)
+
+        if set_frontend_value:
+            multiselect_proto.default[:] = current_value
+            multiselect_proto.value[:] = current_value
+            multiselect_proto.set_value = True
+
+        self.dg._enqueue("multiselect", multiselect_proto)
+        return current_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

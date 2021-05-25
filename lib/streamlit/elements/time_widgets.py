@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from datetime import datetime, date, time
-from typing import cast
+from typing import cast, Optional
 
 from dateutil import relativedelta
 
@@ -21,7 +21,13 @@ import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.DateInput_pb2 import DateInput as DateInputProto
 from streamlit.proto.TimeInput_pb2 import TimeInput as TimeInputProto
-from streamlit.state.widgets import register_widget
+from streamlit.state.widgets import (
+    register_widget,
+    WidgetArgs,
+    WidgetCallback,
+    WidgetDeserializer,
+    WidgetKwargs,
+)
 from .form import current_form_id
 
 
@@ -94,6 +100,9 @@ class TimeWidgetsMixin:
         max_value=None,
         key=None,
         help=None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a date input widget.
 
@@ -178,16 +187,34 @@ class TimeWidgetsMixin:
 
         date_input_proto.form_id = current_form_id(self.dg)
 
-        ui_value, set_frontend_value = register_widget(
-            "date_input", date_input_proto, user_key=key
+        def deserialize_date_input(ui_value):
+            if ui_value is not None:
+                return_value = getattr(ui_value, "data")
+                return_value = [
+                    datetime.strptime(v, "%Y/%m/%d").date() for v in return_value
+                ]
+            else:
+                return_value = value
+
+            return return_value[0] if single_value else tuple(return_value)
+
+        current_value, set_frontend_value = register_widget(
+            "date_input",
+            date_input_proto,
+            user_key=key,
+            on_change_handler=on_change,
+            args=args,
+            kwargs=kwargs,
+            deserializer=deserialize_date_input,
         )
 
-        if ui_value is not None:
-            value = getattr(ui_value, "data")
-            value = [datetime.strptime(v, "%Y/%m/%d").date() for v in value]
+        if set_frontend_value:
+            date_input_proto.default = current_value
+            date_input_proto.value = current_value
+            date_input_proto.set_value = True
 
-        return_value = value[0] if single_value else tuple(value)
-        return self.dg._enqueue("date_input", date_input_proto, return_value)
+        self.dg._enqueue("date_input", date_input_proto)
+        return current_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":
