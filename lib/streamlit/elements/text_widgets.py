@@ -12,19 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast
+from typing import cast, Optional
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.TextArea_pb2 import TextArea as TextAreaProto
 from streamlit.proto.TextInput_pb2 import TextInput as TextInputProto
-from streamlit.state.widgets import register_widget
+from streamlit.state.widgets import (
+    register_widget,
+    WidgetArgs,
+    WidgetCallback,
+    WidgetDeserializer,
+    WidgetKwargs,
+)
 from .form import current_form_id
 
 
 class TextWidgetsMixin:
     def text_input(
-        self, label, value="", max_chars=None, key=None, type="default", help=None
+        self,
+        label,
+        value="",
+        max_chars=None,
+        key=None,
+        type="default",
+        help=None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a single-line text input widget.
 
@@ -80,14 +95,37 @@ class TextWidgetsMixin:
                 % type
             )
 
-        ui_value, set_frontend_value = register_widget(
-            "text_input", text_input_proto, user_key=key
+        deserialize_text_input: WidgetDeserializer = lambda ui_value: str(
+            ui_value if ui_value is not None else value
         )
-        current_value = ui_value if ui_value is not None else value
-        return self.dg._enqueue("text_input", text_input_proto, str(current_value))
+        current_value, set_frontend_value = register_widget(
+            "text_input",
+            text_input_proto,
+            user_key=key,
+            on_change_handler=on_change,
+            args=args,
+            kwargs=kwargs,
+            deserializer=deserialize_text_input,
+        )
+
+        if set_frontend_value:
+            text_input_proto.value = current_value
+            text_input_proto.set_value = True
+
+        self.dg._enqueue("text_input", text_input_proto)
+        return current_value
 
     def text_area(
-        self, label, value="", height=None, max_chars=None, key=None, help=None
+        self,
+        label,
+        value="",
+        height=None,
+        max_chars=None,
+        key=None,
+        help=None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a multi-line text input widget.
 
@@ -141,11 +179,25 @@ class TextWidgetsMixin:
         if max_chars is not None:
             text_area_proto.max_chars = max_chars
 
-        ui_value, set_frontend_value = register_widget(
-            "text_area", text_area_proto, user_key=key
+        deserialize_text_area: WidgetDeserializer = lambda ui_value: str(
+            ui_value if ui_value is not None else value
         )
-        current_value = ui_value if ui_value is not None else value
-        return self.dg._enqueue("text_area", text_area_proto, str(current_value))
+        current_value, set_frontend_value = register_widget(
+            "text_area",
+            text_area_proto,
+            user_key=key,
+            on_change_handler=on_change,
+            args=args,
+            kwargs=kwargs,
+            deserializer=deserialize_text_area,
+        )
+
+        if set_frontend_value:
+            text_area_proto.value = current_value
+            text_area_proto.set_value = True
+
+        self.dg._enqueue("text_area", text_area_proto)
+        return current_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

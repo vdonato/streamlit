@@ -12,18 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast
+from typing import cast, Optional
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.Radio_pb2 import Radio as RadioProto
-from streamlit.state.widgets import register_widget, NoValue
+from streamlit.state.widgets import (
+    register_widget,
+    WidgetArgs,
+    WidgetCallback,
+    WidgetDeserializer,
+    WidgetKwargs,
+)
 from streamlit.type_util import ensure_iterable
 from .form import current_form_id
 
 
 class RadioMixin:
-    def radio(self, label, options, index=0, format_func=str, key=None, help=None):
+    def radio(
+        self,
+        label,
+        options,
+        index=0,
+        format_func=str,
+        key=None,
+        help=None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
+    ):
         """Display a radio button widget.
 
         Parameters
@@ -85,17 +102,31 @@ class RadioMixin:
         if help is not None:
             radio_proto.help = help
 
-        ui_value, set_frontend_value = register_widget(
-            "radio", radio_proto, user_key=key
-        )
-        current_value = ui_value if ui_value is not None else index
+        def deserialize_radio(ui_value):
+            idx = ui_value if ui_value is not None else index
 
-        return_value = (
-            options[current_value]
-            if len(options) > 0 and options[current_value] is not None
-            else NoValue
+            return (
+                options[idx] if len(options) > 0 and options[idx] is not None else None
+            )
+
+        current_value, set_frontend_value = register_widget(
+            "radio",
+            radio_proto,
+            user_key=key,
+            on_change_handler=on_change,
+            args=args,
+            kwargs=kwargs,
+            deserializer=deserialize_radio,
         )
-        return self.dg._enqueue("radio", radio_proto, return_value)
+
+        if set_frontend_value:
+            # TODO: Catch and rethrow ValueErrors with a more clear error
+            # message.
+            radio_proto.value = options.index(current_value)
+            radio_proto.set_value = True
+
+        self.dg._enqueue("radio", radio_proto)
+        return current_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

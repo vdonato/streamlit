@@ -13,13 +13,20 @@
 # limitations under the License.
 
 import numbers
-from typing import cast
+from typing import cast, Optional
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.js_number import JSNumber, JSNumberBoundsException
 from streamlit.proto.NumberInput_pb2 import NumberInput as NumberInputProto
-from streamlit.state.widgets import register_widget, NoValue
+from streamlit.state.widgets import (
+    NoValue,
+    register_widget,
+    WidgetArgs,
+    WidgetCallback,
+    WidgetDeserializer,
+    WidgetKwargs,
+)
 from .form import current_form_id
 
 
@@ -34,6 +41,9 @@ class NumberInputMixin:
         format=None,
         key=None,
         help=None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a numeric input widget.
 
@@ -79,13 +89,16 @@ class NumberInputMixin:
         """
 
         # Ensure that all arguments are of the same type.
-        args = [min_value, max_value, value, step]
+        number_input_args = [min_value, max_value, value, step]
 
         int_args = all(
-            isinstance(a, (numbers.Integral, type(None), NoValue)) for a in args
+            isinstance(a, (numbers.Integral, type(None), NoValue))
+            for a in number_input_args
         )
 
-        float_args = all(isinstance(a, (float, type(None), NoValue)) for a in args)
+        float_args = all(
+            isinstance(a, (float, type(None), NoValue)) for a in number_input_args
+        )
 
         if not int_args and not float_args:
             raise StreamlitAPIException(
@@ -201,12 +214,25 @@ class NumberInputMixin:
         if format is not None:
             number_input_proto.format = format
 
-        ui_value, set_frontend_value = register_widget(
-            "number_input", number_input_proto, user_key=key
+        deserialize_number_input: WidgetDeserializer = (
+            lambda ui_value: ui_value if ui_value is not None else value
+        )
+        current_value, set_frontend_value = register_widget(
+            "number_input",
+            number_input_proto,
+            user_key=key,
+            on_change_handler=on_change,
+            args=args,
+            kwargs=kwargs,
+            deserializer=deserialize_number_input,
         )
 
-        return_value = ui_value if ui_value is not None else value
-        return self.dg._enqueue("number_input", number_input_proto, return_value)
+        if set_frontend_value:
+            number_input_proto.value = current_value
+            number_input_proto.set_value = True
+
+        self.dg._enqueue("number_input", number_input_proto)
+        return current_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

@@ -13,14 +13,19 @@
 # limitations under the License.
 
 from datetime import date, time, datetime, timedelta, timezone
-from typing import cast
+from typing import cast, Optional
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.js_number import JSNumber
 from streamlit.js_number import JSNumberBoundsException
 from streamlit.proto.Slider_pb2 import Slider as SliderProto
-from streamlit.state.widgets import register_widget
+from streamlit.state.widgets import (
+    register_widget,
+    WidgetArgs,
+    WidgetCallback,
+    WidgetKwargs,
+)
 from .form import current_form_id
 
 
@@ -35,6 +40,9 @@ class SliderMixin:
         format=None,
         key=None,
         help=None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a slider widget.
 
@@ -228,9 +236,9 @@ class SliderMixin:
             )
 
         # Ensure that all arguments are of the same type.
-        args = [min_value, max_value, step]
-        int_args = all(map(lambda a: isinstance(a, int), args))
-        float_args = all(map(lambda a: isinstance(a, float), args))
+        slider_args = [min_value, max_value, step]
+        int_args = all(map(lambda a: isinstance(a, int), slider_args))
+        float_args = all(map(lambda a: isinstance(a, float), slider_args))
         # When min and max_value are the same timelike, step should be a timedelta
         timelike_args = (
             data_type in TIMELIKE_TYPES
@@ -380,29 +388,45 @@ class SliderMixin:
         if help is not None:
             slider_proto.help = help
 
-        ui_value, set_frontend_value = register_widget(
-            "slider", slider_proto, user_key=key
+        def deserialize_slider(ui_value):
+            if ui_value:
+                val = getattr(ui_value, "data")
+            else:
+                # Widget has not been used; fallback to the original value,
+                val = value
+
+            # The widget always returns a float array, so fix the return type if necessary
+            if data_type == SliderProto.INT:
+                val = list(map(int, val))
+            if data_type == SliderProto.DATETIME:
+                val = [_micros_to_datetime(int(v)) for v in val]
+            if data_type == SliderProto.DATE:
+                val = [_micros_to_datetime(int(v)).date() for v in val]
+            if data_type == SliderProto.TIME:
+                val = [
+                    _micros_to_datetime(int(v)).time().replace(tzinfo=orig_tz)
+                    for v in val
+                ]
+            return val[0] if single_value else tuple(val)
+
+        current_value, set_frontend_value = register_widget(
+            "slider",
+            slider_proto,
+            user_key=key,
+            on_change_handler=on_change,
+            args=args,
+            kwargs=kwargs,
+            deserializer=deserialize_slider,
         )
-        if ui_value:
-            current_value = getattr(ui_value, "data")
-        else:
-            # Widget has not been used; fallback to the original value,
-            current_value = value
-        # The widget always returns a float array, so fix the return type if necessary
-        if data_type == SliderProto.INT:
-            current_value = list(map(int, current_value))
-        if data_type == SliderProto.DATETIME:
-            current_value = [_micros_to_datetime(int(v)) for v in current_value]
-        if data_type == SliderProto.DATE:
-            current_value = [_micros_to_datetime(int(v)).date() for v in current_value]
-        if data_type == SliderProto.TIME:
-            current_value = [
-                _micros_to_datetime(int(v)).time().replace(tzinfo=orig_tz)
-                for v in current_value
-            ]
-        # If the original value was a list/tuple, so will be the output (and vice versa)
-        return_value = current_value[0] if single_value else tuple(current_value)
-        return self.dg._enqueue("slider", slider_proto, return_value)
+
+        if set_frontend_value:
+            slider_proto.value[:] = (
+                [current_value] if single_value else list(current_value)
+            )
+            slider_proto.set_value = True
+
+        self.dg._enqueue("slider", slider_proto)
+        return current_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

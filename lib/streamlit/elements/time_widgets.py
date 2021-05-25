@@ -25,14 +25,22 @@ from streamlit.state.widgets import (
     register_widget,
     WidgetArgs,
     WidgetCallback,
-    WidgetDeserializer,
     WidgetKwargs,
 )
 from .form import current_form_id
 
 
 class TimeWidgetsMixin:
-    def time_input(self, label, value=None, key=None, help=None):
+    def time_input(
+        self,
+        label,
+        value=None,
+        key=None,
+        help=None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
+    ):
         """Display a time input widget.
 
         Parameters
@@ -82,15 +90,29 @@ class TimeWidgetsMixin:
         if help is not None:
             time_input_proto.help = help
 
-        ui_value, set_frontend_value = register_widget(
-            "time_input", time_input_proto, user_key=key
+        def deserialize_time_input(ui_value):
+            return (
+                datetime.strptime(ui_value, "%H:%M").time()
+                if ui_value is not None
+                else value
+            )
+
+        current_value, set_frontend_value = register_widget(
+            "time_input",
+            time_input_proto,
+            user_key=key,
+            on_change_handler=on_change,
+            args=args,
+            kwargs=kwargs,
+            deserializer=deserialize_time_input,
         )
-        current_value = (
-            datetime.strptime(ui_value, "%H:%M").time()
-            if ui_value is not None
-            else value
-        )
-        return self.dg._enqueue("time_input", time_input_proto, current_value)
+
+        if set_frontend_value:
+            time_input_proto.value = current_value
+            time_input_proto.set_value = True
+
+        self.dg._enqueue("time_input", time_input_proto)
+        return current_value
 
     def date_input(
         self,
@@ -209,7 +231,9 @@ class TimeWidgetsMixin:
         )
 
         if set_frontend_value:
-            date_input_proto.value = current_value
+            date_input_proto.value[:] = (
+                [current_value] if single_value else list(current_value)
+            )
             date_input_proto.set_value = True
 
         self.dg._enqueue("date_input", date_input_proto)

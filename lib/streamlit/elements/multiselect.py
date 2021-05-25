@@ -140,7 +140,9 @@ class MultiSelectMixin:
         )
 
         if set_frontend_value:
-            multiselect_proto.value[:] = current_value
+            multiselect_proto.value[:] = _check_and_convert_to_indices(
+                options, current_value
+            )
             multiselect_proto.set_value = True
 
         self.dg._enqueue("multiselect", multiselect_proto)
