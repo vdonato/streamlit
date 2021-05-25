@@ -209,7 +209,6 @@ class TimeWidgetsMixin:
         )
 
         if set_frontend_value:
-            date_input_proto.default = current_value
             date_input_proto.value = current_value
             date_input_proto.set_value = True
 

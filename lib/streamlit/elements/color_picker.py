@@ -120,7 +120,6 @@ class ColorPickerMixin:
         )
 
         if set_frontend_value:
-            color_picker_proto.default = current_value
             color_picker_proto.value = current_value
             color_picker_proto.set_value = True
 

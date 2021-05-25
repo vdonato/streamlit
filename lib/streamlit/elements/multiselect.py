@@ -140,7 +140,6 @@ class MultiSelectMixin:
         )
 
         if set_frontend_value:
-            multiselect_proto.default[:] = current_value
             multiselect_proto.value[:] = current_value
             multiselect_proto.set_value = True
 
