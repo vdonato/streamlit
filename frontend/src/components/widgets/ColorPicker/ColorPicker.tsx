@@ -54,6 +54,15 @@ class ColorPicker extends React.PureComponent<Props, State> {
     this.commitWidgetValue({ fromUi: false })
   }
 
+  public componentDidUpdate(): void {
+    const { setValue, value } = this.props.element
+    if (setValue) {
+      this.setState({ value }, () => {
+        this.commitWidgetValue({ fromUi: false })
+      })
+    }
+  }
+
   public componentWillUnmount(): void {
     this.formClearHelper.disconnect()
   }

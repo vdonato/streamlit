@@ -87,6 +87,20 @@ class DateInput extends React.PureComponent<Props, State> {
     this.commitWidgetValue({ fromUi: false })
   }
 
+  public componentDidUpdate(): void {
+    const { setValue, value: values } = this.props.element
+    if (setValue) {
+      this.setState(
+        {
+          values: values.map((v: string) => new Date(v)),
+        },
+        () => {
+          this.commitWidgetValue({ fromUi: false })
+        }
+      )
+    }
+  }
+
   public componentWillUnmount(): void {
     this.formClearHelper.disconnect()
   }
