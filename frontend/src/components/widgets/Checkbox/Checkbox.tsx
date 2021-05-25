@@ -62,21 +62,17 @@ class Checkbox extends React.PureComponent<Props, State> {
     return storedValue !== undefined ? storedValue : this.props.element.default
   }
 
-  public componentDidUpdate(): void {
-    if (this.props.element.set_value) {
-      this.setState(
-        {
-          value: this.props.element.value,
-        },
-        () => {
-          this.commitWidgetValue({ fromUi: false })
-        }
-      )
-    }
-  }
-
   public componentDidMount(): void {
     this.commitWidgetValue({ fromUi: false })
+  }
+
+  public componentDidUpdate(): void {
+    const { setValue, value } = this.props.element
+    if (setValue) {
+      this.setState({ value }, () => {
+        this.commitWidgetValue({ fromUi: false })
+      })
+    }
   }
 
   public componentWillUnmount(): void {
