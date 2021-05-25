@@ -275,9 +275,17 @@ class WidgetManager:
             widget = self._widgets.get(wstate.id, None)
 
             if widget is None:
-                self._widgets[wstate.id] = Widget(wstate.id, state=wstate)
-            else:
-                widget.state = wstate
+                widget = Widget(wstate.id)
+                self._widgets[wstate.id] = widget
+
+            widget.state = wstate
+
+            # XXX: Gross hack to let deserializers work in a callback. This
+            # should eventually be replaced by having the widget class keep
+            # track of both curr and prev state instead of managing them in
+            # separate dictionaries.
+            if widget.id in self._prev_widgets:
+                widget.deserializer = self._prev_widgets[widget.id].deserializer
 
     def set_widget_attrs(
         self,
