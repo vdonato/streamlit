@@ -62,6 +62,8 @@ WidgetCallback = Callable[..., None]
 WidgetDeserializer = Callable[[Any], Any]
 WidgetKwargs = Dict[str, Any]
 
+GENERATED_WIDGET_ID_PREFIX = "WIDGET_ID"
+
 
 class NoValue:
     """Return this from DeltaGenerator.foo_widget() when you want the st.foo_widget()
@@ -182,14 +184,18 @@ def register_widget(
         kwargs=kwargs,
     )
 
-    from streamlit.state.session_state import get_session_state
+    if user_key is not None:
+        from streamlit.state.session_state import get_session_state
 
-    state = get_session_state()
-    # The value in the frontend should be set if the widget's value was modified through the state api
-    set_frontend_value = user_key is not None and state.is_new_value(user_key)
-    value = state.get(widget_id, None)
-    # return ctx.widget_mgr.get_widget_value(widget_id), set_frontend_value
-    return value, set_frontend_value
+        session_state = get_session_state()
+
+        # The value in the frontend should be set if the widget's value was
+        # modified through the session_state api.
+        set_frontend_value = session_state.is_new_value(user_key)
+        value = session_state.get(user_key, deserializer(None))
+        return value, set_frontend_value
+
+    return ctx.widget_mgr.get_widget_value(widget_id), False
 
 
 def coalesce_widget_states(
@@ -256,7 +262,7 @@ class WidgetManager:
         return {
             widget.id: widget.value
             for widget in self._widgets.values()
-            if widget.has_key
+            if GENERATED_WIDGET_ID_PREFIX not in widget.id
         }
 
     def mark_widgets_as_old(self) -> None:
@@ -382,4 +388,5 @@ def _get_widget_id(
     if user_key is not None:
         return user_key
     else:
-        return str(hash((element_type, element_proto.SerializeToString())))
+        h = str(hash((element_type, element_proto.SerializeToString())))
+        return f"{GENERATED_WIDGET_ID_PREFIX}-{h}"

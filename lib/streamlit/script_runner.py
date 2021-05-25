@@ -29,6 +29,7 @@ from streamlit.media_file_manager import media_file_manager
 from streamlit.report_thread import ReportThread, ReportContext
 from streamlit.report_thread import get_report_ctx
 from streamlit.script_request_queue import ScriptRequest
+from streamlit.state.session_state import get_session_state
 from streamlit.state.widgets import WidgetManager
 from streamlit.logger import get_logger
 from streamlit.proto.ClientState_pb2 import ClientState
@@ -343,8 +344,8 @@ class ScriptRunner(object):
                     self._widget_mgr.mark_widgets_as_old()
                     self._widget_mgr.set_widget_states(rerun_data.widget_states)
 
-                    # TODO: Mark state as old when unifying widget and
-                    #       session state.
+                    session_state = get_session_state()
+                    session_state.make_state_old()
 
                     self._widget_mgr.call_callbacks()
 
