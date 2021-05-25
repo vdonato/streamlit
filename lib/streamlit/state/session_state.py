@@ -136,7 +136,9 @@ def _get_current_session() -> "ReportSession":
         # This needs to be imported lazily to avoid a dependency cycle.
         from streamlit.server.server import Server
 
-        this_session = Server.get_current().get_session_by_id(ctx.session_id)
+        server = Server.get_current()
+        sid = ctx.session_id
+        this_session = server.get_session_by_id(sid)
 
     if this_session is None:
         raise RuntimeError(

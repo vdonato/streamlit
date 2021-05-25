@@ -80,7 +80,9 @@ class TextWidgetsMixin:
                 % type
             )
 
-        ui_value = register_widget("text_input", text_input_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "text_input", text_input_proto, user_key=key
+        )
         current_value = ui_value if ui_value is not None else value
         return self.dg._enqueue("text_input", text_input_proto, str(current_value))
 
@@ -139,7 +141,9 @@ class TextWidgetsMixin:
         if max_chars is not None:
             text_area_proto.max_chars = max_chars
 
-        ui_value = register_widget("text_area", text_area_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "text_area", text_area_proto, user_key=key
+        )
         current_value = ui_value if ui_value is not None else value
         return self.dg._enqueue("text_area", text_area_proto, str(current_value))
 

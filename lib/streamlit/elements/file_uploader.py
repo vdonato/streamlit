@@ -127,7 +127,7 @@ class FileUploaderMixin:
         # FileUploader's widget value is a list of file IDs
         # representing the current set of files that this uploader should
         # know about.
-        widget_value: Optional[SInt64Array] = register_widget(
+        widget_value, _ = register_widget(
             "file_uploader", file_uploader_proto, user_key=key
         )
 

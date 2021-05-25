@@ -80,7 +80,9 @@ class SelectboxMixin:
         if help is not None:
             selectbox_proto.help = help
 
-        ui_value = register_widget("selectbox", selectbox_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "selectbox", selectbox_proto, user_key=key
+        )
         current_value = ui_value if ui_value is not None else index
 
         return_value = (

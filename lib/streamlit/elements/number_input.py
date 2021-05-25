@@ -201,7 +201,9 @@ class NumberInputMixin:
         if format is not None:
             number_input_proto.format = format
 
-        ui_value = register_widget("number_input", number_input_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "number_input", number_input_proto, user_key=key
+        )
 
         return_value = ui_value if ui_value is not None else value
         return self.dg._enqueue("number_input", number_input_proto, return_value)

@@ -182,7 +182,14 @@ def register_widget(
         kwargs=kwargs,
     )
 
-    return ctx.widget_mgr.get_widget_value(widget_id)
+    from streamlit.state.session_state import get_session_state
+
+    state = get_session_state()
+    # The value in the frontend should be set if the widget's value was modified through the state api
+    set_frontend_value = user_key is not None and state.is_new_value(user_key)
+    value = state.get(widget_id, None)
+    # return ctx.widget_mgr.get_widget_value(widget_id), set_frontend_value
+    return value, set_frontend_value
 
 
 def coalesce_widget_states(

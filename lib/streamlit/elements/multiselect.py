@@ -111,7 +111,9 @@ class MultiSelectMixin:
         if help is not None:
             multiselect_proto.help = help
 
-        ui_value = register_widget("multiselect", multiselect_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "multiselect", multiselect_proto, user_key=key
+        )
         current_value = ui_value.data if ui_value is not None else default_value
         return_value = [options[i] for i in current_value]
         return self.dg._enqueue("multiselect", multiselect_proto, return_value)

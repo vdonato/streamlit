@@ -59,8 +59,13 @@ class CheckboxMixin:
         if help is not None:
             checkbox_proto.help = help
 
-        ui_value = register_widget("checkbox", checkbox_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "checkbox", checkbox_proto, user_key=key
+        )
         current_value = ui_value if ui_value is not None else value
+        if set_frontend_value:
+            checkbox_proto.value = ui_value
+            checkbox_proto.set_value = True
         return self.dg._enqueue("checkbox", checkbox_proto, bool(current_value))
 
     @property

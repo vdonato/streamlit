@@ -85,7 +85,9 @@ class ColorPickerMixin:
         if help is not None:
             color_picker_proto.help = help
 
-        ui_value = register_widget("color_picker", color_picker_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "color_picker", color_picker_proto, user_key=key
+        )
         current_value = ui_value if ui_value is not None else value
         return self.dg._enqueue("color_picker", color_picker_proto, str(current_value))
 

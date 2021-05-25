@@ -76,7 +76,9 @@ class TimeWidgetsMixin:
         if help is not None:
             time_input_proto.help = help
 
-        ui_value = register_widget("time_input", time_input_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "time_input", time_input_proto, user_key=key
+        )
         current_value = (
             datetime.strptime(ui_value, "%H:%M").time()
             if ui_value is not None
@@ -176,7 +178,9 @@ class TimeWidgetsMixin:
 
         date_input_proto.form_id = current_form_id(self.dg)
 
-        ui_value = register_widget("date_input", date_input_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "date_input", date_input_proto, user_key=key
+        )
 
         if ui_value is not None:
             value = getattr(ui_value, "data")

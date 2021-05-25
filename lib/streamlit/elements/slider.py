@@ -380,7 +380,9 @@ class SliderMixin:
         if help is not None:
             slider_proto.help = help
 
-        ui_value = register_widget("slider", slider_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "slider", slider_proto, user_key=key
+        )
         if ui_value:
             current_value = getattr(ui_value, "data")
         else:
