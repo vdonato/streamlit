@@ -94,7 +94,6 @@ class CheckboxMixin:
         )
 
         if set_frontend_value:
-            checkbox_proto.default = current_value
             checkbox_proto.value = current_value
             checkbox_proto.set_value = True
 
