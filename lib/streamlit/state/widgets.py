@@ -309,6 +309,9 @@ class WidgetManager:
         widget.has_key = has_key
 
     def _has_widget_changed(self, widget_id: str) -> bool:
+        if widget_id not in self._widgets:
+            return False
+
         curr_value = self.get_widget_value(widget_id)
         prev_value = self.get_prev_widget_value(widget_id)
         return curr_value != prev_value
