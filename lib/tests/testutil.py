@@ -17,7 +17,7 @@ import threading
 import unittest
 from contextlib import contextmanager
 from typing import Any, Dict
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from streamlit import config
 from streamlit.report_queue import ReportQueue
@@ -25,8 +25,8 @@ from streamlit.report_session import ReportSession
 from streamlit.report_thread import ReportContext
 from streamlit.report_thread import add_report_ctx
 from streamlit.report_thread import get_report_ctx
-from streamlit.server.server import Server, SessionInfo
 from streamlit.state.widgets import WidgetManager
+from streamlit.state.session_state import SessionState
 from streamlit.uploaded_file_manager import UploadedFileManager
 
 
@@ -71,11 +71,19 @@ def build_mock_config_is_manually_set(overrides_dict):
     return mock_config_is_manually_set
 
 
+class FakeReportSession(ReportSession):
+    def __init__(self):
+        self._session_state = SessionState()
+        self._widget_mgr = WidgetManager()
+
+
 class DeltaGeneratorTestCase(unittest.TestCase):
     def setUp(self, override_root=True):
         self.report_queue = ReportQueue()
         self.override_root = override_root
         self.orig_report_ctx = None
+        session = FakeReportSession()
+        self.report_session = session
 
         if self.override_root:
             self.orig_report_ctx = get_report_ctx()
@@ -89,15 +97,9 @@ class DeltaGeneratorTestCase(unittest.TestCase):
                     uploaded_file_mgr=UploadedFileManager(),
                 ),
             )
-            Server(None, "", "")
-            Server.get_current()._session_info_by_id["test session id"] = SessionInfo(
-                None,
-                ReportSession(None, "", "", None),
-            )
 
     def tearDown(self):
         self.clear_queue()
-        Server._singleton = None
         if self.override_root:
             add_report_ctx(threading.current_thread(), self.orig_report_ctx)
 

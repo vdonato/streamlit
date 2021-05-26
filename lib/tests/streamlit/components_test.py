@@ -305,22 +305,35 @@ class InvokeComponentTest(DeltaGeneratorTestCase):
 
     def test_duplicate_key(self):
         """Two components with the same `key` should throw DuplicateWidgetID exception"""
-        self.test_component(foo="bar", key="baz")
 
-        with self.assertRaises(DuplicateWidgetID):
-            self.test_component(key="baz")
+        with patch(
+            "streamlit.state.session_state._get_current_session",
+            return_value=self.report_session,
+        ):
+            self.test_component(foo="bar", key="baz")
+
+            with self.assertRaises(DuplicateWidgetID):
+                self.test_component(key="baz")
 
     def test_key_sent_to_frontend(self):
         """We send the 'key' param to the frontend (even if it's None)."""
-        # Test a string key
-        self.test_component(key="baz")
-        proto = self.get_delta_from_queue().new_element.component_instance
-        self.assertJSONEqual({"key": "baz", "default": None}, proto.json_args)
+        with patch(
+            "streamlit.state.session_state._get_current_session",
+            return_value=self.report_session,
+        ):
+            # Test a string key
+            self.test_component(key="baz")
+            proto = self.get_delta_from_queue().new_element.component_instance
+            self.assertJSONEqual({"key": "baz", "default": None}, proto.json_args)
 
-        # Test an empty key
-        self.test_component()
-        proto = self.get_delta_from_queue().new_element.component_instance
-        self.assertJSONEqual({"key": None, "default": None}, proto.json_args)
+        with patch(
+            "streamlit.state.session_state._get_current_session",
+            return_value=self.report_session,
+        ):
+            # Test an empty key
+            self.test_component()
+            proto = self.get_delta_from_queue().new_element.component_instance
+            self.assertJSONEqual({"key": None, "default": None}, proto.json_args)
 
     def test_simple_default(self):
         """Test the 'default' param with a JSON value."""

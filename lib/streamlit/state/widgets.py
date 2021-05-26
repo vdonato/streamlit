@@ -112,7 +112,7 @@ def register_widget(
     deserializer: WidgetDeserializer = lambda x: x,
     args: Optional[WidgetArgs] = None,
     kwargs: Optional[WidgetKwargs] = None,
-) -> Any:
+) -> Tuple[Any, bool]:
     """Register a widget with Streamlit, and return its current value.
     NOTE: This function should be called after the proto has been filled.
 
@@ -162,7 +162,7 @@ def register_widget(
         # Early-out if we're not running inside a ReportThread (which
         # probably means we're running as a "bare" Python script, and
         # not via `streamlit run`).
-        return deserializer(None)
+        return (deserializer(None), False)
 
     # Register the widget, and ensure another widget with the same id hasn't
     # already been registered.
@@ -193,9 +193,9 @@ def register_widget(
         # modified through the session_state api.
         set_frontend_value = session_state.is_new_value(user_key)
         value = session_state.get(user_key, deserializer(None))
-        return value, set_frontend_value
+        return (value, set_frontend_value)
 
-    return ctx.widget_mgr.get_widget_value(widget_id), False
+    return (ctx.widget_mgr.get_widget_value(widget_id), False)
 
 
 def coalesce_widget_states(
@@ -262,7 +262,7 @@ class WidgetManager:
         return {
             widget.id: widget.value
             for widget in self._widgets.values()
-            if GENERATED_WIDGET_ID_PREFIX not in widget.id
+            if GENERATED_WIDGET_ID_PREFIX not in widget.id and widget.has_key
         }
 
     def mark_widgets_as_old(self) -> None:
